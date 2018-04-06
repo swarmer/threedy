@@ -8,6 +8,8 @@ extern crate log;
 // Submodules
 pub mod demo;
 
+mod input_state;
+
 
 // Version
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
