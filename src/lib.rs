@@ -9,6 +9,7 @@ extern crate log;
 pub mod demo;
 
 mod input_state;
+mod polytopes;
 
 
 // Version

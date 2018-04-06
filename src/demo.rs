@@ -3,17 +3,24 @@ use piston_window as pw;
 use piston_window::{ButtonEvent, FocusEvent, UpdateEvent};
 
 use input_state::InputState;
+use polytopes::{Point3d, Edge, Polytope, Cube};
 
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug)]
 struct DemoModel {
+    polytope: Box<Polytope>,
+
     pub x1: f64, pub y1: f64,
     pub x2: f64, pub y2: f64,
 }
 
 impl DemoModel {
     pub fn new() -> DemoModel {
-        DemoModel { x1: 20.0, y1: 20.0, x2: 400.0, y2: 400.0 }
+        let center = (3.0, 5.0, 2.0);
+        let height = 1.0;
+        let polytope = Box::new(Cube { center, height });
+
+        DemoModel { polytope, x1: 20.0, y1: 20.0, x2: 400.0, y2: 400.0 }
     }
 
     pub fn update(&mut self, dt: f64, input_state: InputState) {
@@ -91,10 +98,26 @@ impl DemoView {
         let white = [1.0; 4];
         pw::clear(white, graphics);
 
+        Self::render_polytope(context, graphics, &*model.polytope);
+
         let red = [1.0, 0.0, 0.0, 1.0];
         let width = 1.0;
         let coords = [model.x1, model.y1, model.x2, model.y2];
         pw::line(red, width, coords, context.transform, graphics);
+    }
+
+    fn render_polytope(context: pw::Context, graphics: &mut pw::G2d, polytope: &Polytope) {
+        info!("Rendering polytope: {:?}", polytope);
+
+        let edges = polytope.edges();
+        info!("Edges: {:?}", edges);
+
+        let red = [1.0, 0.0, 0.0, 1.0];
+        let width = 1.0;
+        for (point1, point2) in edges {
+            let coords = [point1.1 * 100.0, point1.2 * 100.0, point2.1 * 100.0, point2.2 * 100.0];
+            pw::line(red, width, coords, context.transform, graphics);
+        }
     }
 }
 
