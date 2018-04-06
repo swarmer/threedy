@@ -19,7 +19,10 @@ impl DemoModel {
     pub fn update(&mut self, dt: f64, input_state: InputState) {
         trace!("Updating model");
 
-        self.x1 += 10.0 * dt;
+        self.y1 -= 100.0 * dt * match input_state.up { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        self.y1 += 100.0 * dt * match input_state.down { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        self.x1 -= 100.0 * dt * match input_state.left { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        self.x1 += 100.0 * dt * match input_state.right { pw::ButtonState::Press => 1.0, _ => 0.0 };
     }
 }
 
@@ -57,7 +60,7 @@ impl DemoView {
     }
 
     pub fn handle_button_event(&mut self, button_args: &pw::ButtonArgs) {
-        info!("Handling button event");
+        debug!("Handling button event: {:?}", button_args);
 
         match button_args.button {
             pw::Button::Keyboard(pw::Key::W) => {
