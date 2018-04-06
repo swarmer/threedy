@@ -991,6 +991,7 @@ dependencies = [
  "piston2d-opengl_graphics 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston_window 0.77.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pistoncore-glutin_window 0.45.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pistoncore-input 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
