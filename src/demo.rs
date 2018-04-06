@@ -5,6 +5,7 @@ use piston_window::{ButtonEvent, FocusEvent, UpdateEvent};
 use input_state::InputState;
 
 
+#[derive(Clone, Debug, PartialEq)]
 struct DemoModel {
     pub x1: f64, pub y1: f64,
     pub x2: f64, pub y2: f64,
@@ -42,7 +43,7 @@ impl DemoView {
     }
 
     pub fn input_state(&self) -> InputState {
-        self.input_state.clone()
+        self.input_state
     }
 
     pub fn next_event(&mut self) -> Option<pw::Event> {
@@ -75,7 +76,7 @@ impl DemoView {
         }
     }
 
-    pub fn handle_focus_event(&mut self, focused: bool) {
+    pub fn handle_focus_event(&mut self, _focused: bool) {
         debug!("Handling focus event");
 
         self.input_state.reset();

@@ -1,7 +1,7 @@
 use piston_window as pw;
 
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct InputState {
     pub left: pw::ButtonState,
     pub right: pw::ButtonState,
