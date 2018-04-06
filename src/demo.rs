@@ -1,5 +1,6 @@
 use env_logger;
 use piston_window as pw;
+use piston_window::UpdateEvent;
 
 
 struct DemoModel {
@@ -10,6 +11,12 @@ struct DemoModel {
 impl DemoModel {
     pub fn new() -> DemoModel {
         DemoModel { x1: 20.0, y1: 20.0, x2: 400.0, y2: 400.0 }
+    }
+
+    pub fn update(&mut self, dt: f64) {
+        trace!("Updating model");
+
+        self.x1 += 10.0 * dt;
     }
 }
 
@@ -67,7 +74,12 @@ impl DemoController {
         info!("Starting demo");
 
         while let Some(e) = self.view.next_event() {
-            debug!("Received event: {:?}", e);
+            trace!("Received event: {:?}", e);
+
+            // update model if needed
+            e.update(|&args| self.model.update(args.dt));
+
+            // rerender if needed
             self.view.handle_render_event(&e, &self.model);
         }
     }
