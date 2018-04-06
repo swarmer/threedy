@@ -1,0 +1,13 @@
+/target
+**/*.rs.bk
+
+# IDEs
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Temporary data
+tmp/
+misc/
