@@ -33,11 +33,20 @@ impl DemoView {
         self.window.next()
     }
 
-    pub fn handle_render(&mut self, event: &pw::Event, model: &DemoModel) {
-        self.window.draw_2d(event, |ctx, gr| {
-            pw::clear([1.0; 4], gr);
-            pw::line([1.0, 0.0, 0.0, 1.0], 1.0, [20.0, 20.0, 400.0, 400.0], ctx.transform, gr);
+    pub fn handle_render_event(&mut self, event: &pw::Event, model: &DemoModel) {
+        self.window.draw_2d(event, |context, graphics| {
+            Self::render(context, graphics, model);
         });
+    }
+
+    fn render(context: pw::Context, graphics: &mut pw::G2d, model: &DemoModel) {
+        let white = [1.0; 4];
+        pw::clear(white, graphics);
+
+        let red = [1.0, 0.0, 0.0, 1.0];
+        let width = 1.0;
+        let coords = [model.x1, model.y1, model.x2, model.y2];
+        pw::line(red, width, coords, context.transform, graphics);
     }
 }
 
@@ -59,7 +68,7 @@ impl DemoController {
 
         while let Some(e) = self.view.next_event() {
             debug!("Received event: {:?}", e);
-            self.view.handle_render(&e, &self.model);
+            self.view.handle_render_event(&e, &self.model);
         }
     }
 }
