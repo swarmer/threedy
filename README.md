@@ -1,2 +1,2 @@
 # threedy
-Manual 3D graphics
+Manual 3D graphics demo

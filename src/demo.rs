@@ -1,4 +1,5 @@
 use env_logger;
+use ndarray::{Array};
 use piston_window as pw;
 use piston_window::{ButtonEvent, FocusEvent, UpdateEvent};
 
@@ -8,10 +9,7 @@ use polytopes::{Point3d, Edge, Polytope, Cube};
 
 #[derive(Debug)]
 struct DemoModel {
-    polytope: Box<Polytope>,
-
-    pub x1: f64, pub y1: f64,
-    pub x2: f64, pub y2: f64,
+    polytope: Box<Cube>,
 }
 
 impl DemoModel {
@@ -19,17 +17,16 @@ impl DemoModel {
         let center = (3.0, 5.0, 2.0);
         let height = 1.0;
         let polytope = Box::new(Cube { center, height });
-
-        DemoModel { polytope, x1: 20.0, y1: 20.0, x2: 400.0, y2: 400.0 }
+        DemoModel { polytope }
     }
 
     pub fn update(&mut self, dt: f64, input_state: InputState) {
         trace!("Updating model");
 
-        self.y1 -= 100.0 * dt * match input_state.up { pw::ButtonState::Press => 1.0, _ => 0.0 };
-        self.y1 += 100.0 * dt * match input_state.down { pw::ButtonState::Press => 1.0, _ => 0.0 };
-        self.x1 -= 100.0 * dt * match input_state.left { pw::ButtonState::Press => 1.0, _ => 0.0 };
-        self.x1 += 100.0 * dt * match input_state.right { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        self.polytope.center.2 -= dt * match input_state.up { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        self.polytope.center.2 += dt * match input_state.down { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        self.polytope.center.0 -= dt * match input_state.left { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        self.polytope.center.0 += dt * match input_state.right { pw::ButtonState::Press => 1.0, _ => 0.0 };
     }
 }
 
@@ -99,23 +96,28 @@ impl DemoView {
         pw::clear(white, graphics);
 
         Self::render_polytope(context, graphics, &*model.polytope);
-
-        let red = [1.0, 0.0, 0.0, 1.0];
-        let width = 1.0;
-        let coords = [model.x1, model.y1, model.x2, model.y2];
-        pw::line(red, width, coords, context.transform, graphics);
     }
 
     fn render_polytope(context: pw::Context, graphics: &mut pw::G2d, polytope: &Polytope) {
-        info!("Rendering polytope: {:?}", polytope);
-
-        let edges = polytope.edges();
-        info!("Edges: {:?}", edges);
+        let transformation_matrix = array![
+            [1.0, 0.0, -0.3, 0.0],
+            [0.0, 1.0, -0.3, 0.0],
+        ] * 50.0;
 
         let red = [1.0, 0.0, 0.0, 1.0];
         let width = 1.0;
+        let edges = polytope.edges();
         for (point1, point2) in edges {
-            let coords = [point1.1 * 100.0, point1.2 * 100.0, point2.1 * 100.0, point2.2 * 100.0];
+            let point1_arr = array![point1.0, point1.1, point1.2, 1.0];
+            let point2_arr = array![point2.0, point2.1, point2.2, 1.0];
+
+            let point1_transformed = transformation_matrix.dot(&point1_arr);
+            let point2_transformed = transformation_matrix.dot(&point2_arr);
+
+            let coords = [
+                point1_transformed[0], point1_transformed[1],
+                point2_transformed[0], point2_transformed[1],
+            ];
             pw::line(red, width, coords, context.transform, graphics);
         }
     }

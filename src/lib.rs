@@ -1,8 +1,8 @@
 // Dependencies
-extern crate piston_window;
 extern crate env_logger;
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
+#[macro_use] extern crate ndarray;
+extern crate piston_window;
 
 
 // Submodules
