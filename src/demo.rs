@@ -1,5 +1,7 @@
+use std::f64;
+use std::f64::consts::PI;
+
 use env_logger;
-use ndarray::{Array};
 use piston_window as pw;
 use piston_window::{ButtonEvent, FocusEvent, UpdateEvent};
 
@@ -14,8 +16,8 @@ struct DemoModel {
 
 impl DemoModel {
     pub fn new() -> DemoModel {
-        let offset = (3.0, 5.0, 2.0);
-        let scale = 50.0;
+        let offset = (0.0, 0.0, 5.0);
+        let scale = 1.0;
         let polytope = Box::new(Cube { offset, scale });
         DemoModel { polytope }
     }
@@ -25,13 +27,16 @@ impl DemoModel {
 
         let mut dx = 0.0;
         let mut dy = 0.0;
+        let mut dz = 0.0;
 
-        dy -= 50.0 * dt * match input_state.up { pw::ButtonState::Press => 1.0, _ => 0.0 };
-        dy += 50.0 * dt * match input_state.down { pw::ButtonState::Press => 1.0, _ => 0.0 };
-        dx -= 50.0 * dt * match input_state.left { pw::ButtonState::Press => 1.0, _ => 0.0 };
-        dx += 50.0 * dt * match input_state.right { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        dy += 10.0 * dt * match input_state.up { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        dy -= 10.0 * dt * match input_state.down { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        dx -= 10.0 * dt * match input_state.left { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        dx += 10.0 * dt * match input_state.right { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        dz += 10.0 * dt * match input_state.front { pw::ButtonState::Press => 1.0, _ => 0.0 };
+        dz -= 10.0 * dt * match input_state.back { pw::ButtonState::Press => 1.0, _ => 0.0 };
 
-        self.polytope.shift((dx, dy, 0.0));
+        self.polytope.shift((dx, dy, dz));
     }
 }
 
@@ -42,11 +47,15 @@ struct DemoView {
 }
 
 impl DemoView {
+    const WIDTH: u32 = 800;
+    const HEIGHT: u32 = 600;
+    const COORDS_SCALE: f64 = 100.0;
+
     pub fn new() -> DemoView {
         let input_state = InputState::new();
 
         let window =
-            pw::WindowSettings::new("threedy", [800, 600])
+            pw::WindowSettings::new("threedy", [Self::WIDTH, Self::HEIGHT])
             .exit_on_esc(true)
             .build()
             .expect("window init failed");
@@ -73,13 +82,19 @@ impl DemoView {
 
         match button_args.button {
             pw::Button::Keyboard(pw::Key::W) => {
-                self.input_state.up = button_args.state;
+                self.input_state.front = button_args.state;
             },
             pw::Button::Keyboard(pw::Key::A) => {
                 self.input_state.left = button_args.state;
             },
-            pw::Button::Keyboard(pw::Key::S) => {
+            pw::Button::Keyboard(pw::Key::R) => {
+                self.input_state.up = button_args.state;
+            },
+            pw::Button::Keyboard(pw::Key::F) => {
                 self.input_state.down = button_args.state;
+            },
+            pw::Button::Keyboard(pw::Key::S) => {
+                self.input_state.back = button_args.state;
             },
             pw::Button::Keyboard(pw::Key::D) => {
                 self.input_state.right = button_args.state;
@@ -128,16 +143,60 @@ impl DemoView {
             [0.0, 0.0, 0.0, 1.0],
         ];
 
-        let point_transform_matrix = offset_matrix.dot(&rotation_matrix).dot(&scale_matrix);
+        let model_matrix = offset_matrix.dot(&rotation_matrix).dot(&scale_matrix);
 
-        let perspective_matrix = array![
-            [1.0, 0.0, -0.3, 0.0],
-            [0.0, 1.0, -0.3, 0.0],
+        // TODO
+        let view_matrix = array![
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ];
 
-        let camera_matrix = perspective_matrix.dot(&point_transform_matrix);
+        let fov = 90.0;
+        let near = 0.1;
+        let far = 100.0;
+        let top = near * (fov / 180.0 * PI / 2.0).tan();
+        let bottom = -top;
+        let right = top;
+        let left = -right;
+        let projection_matrix = array![
+            [2.0 * near / (right - left), 0.0, (right + left) / (right - left), 0.0],
+            [0.0, 2.0 * near / (top - bottom), (top + bottom) / (top - bottom), 0.0],
+            [0.0, 0.0, -(far + near) / (far - near), -(2.0 * far * near) / (far - near)],
+            [0.0, 0.0, 1.0, 0.0],
+        ];
+//        let projection_matrix = array![
+//            [1.0, 0.0, 0.0, 0.0],
+//            [0.0, 1.0, 0.0, 0.0],
+//            [0.0, 0.0, 1.0, 0.0],
+//            [0.0, 0.0, 0.0, 1.0],
+//        ];
+//        let projection_matrix = array![
+//            [1.0, 0.0, -1.0, 0.0],
+//            [0.0, 1.0, -1.0, 0.0],
+//            [0.0, 0.0, 1.0, 0.0],
+//            [0.0, 0.0, 0.0, 1.0],
+//        ];
+        println!("Projection: {:?}", projection_matrix);
+
+        let mvp_matrix =
+            projection_matrix
+            .dot(&view_matrix)
+            .dot(&model_matrix);
+
+        let graphics_matrix = array![
+            [Self::COORDS_SCALE, 0.0, 0.0, (Self::WIDTH as f64) / 2.0],
+            [0.0, -Self::COORDS_SCALE, 0.0, (Self::HEIGHT as f64) / 2.0],
+            [0.0, 0.0, Self::COORDS_SCALE, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
+//        let graphics_matrix = array![
+//            [1.0, 0.0, 0.0, 0.0],
+//            [0.0, 1.0, 0.0, 0.0],
+//            [0.0, 0.0, 1.0, 0.0],
+//            [0.0, 0.0, 0.0, 1.0],
+//        ];
 
         let red = [1.0, 0.0, 0.0, 1.0];
         let width = 1.0;
@@ -145,13 +204,24 @@ impl DemoView {
         for (point1, point2) in edges {
             let point1_arr = array![point1.0, point1.1, point1.2, 1.0];
             let point2_arr = array![point2.0, point2.1, point2.2, 1.0];
+            println!("Point1 raw: {:?}", point1_arr);
+            println!("Point2 raw: {:?}", point2_arr);
 
-            let point1_transformed = camera_matrix.dot(&point1_arr);
-            let point2_transformed = camera_matrix.dot(&point2_arr);
+            let mut point1_projection = mvp_matrix.dot(&point1_arr);
+            let mut point2_projection = mvp_matrix.dot(&point2_arr);
+            println!("Point1 pre graphics: {:?}", point1_projection);
+            println!("Point2 pre graphics: {:?}", point2_projection);
+            point1_projection /= point1_projection[3];
+            point2_projection /= point2_projection[3];
+
+            let point1_graphical = graphics_matrix.dot(&point1_projection);
+            let point2_graphical = graphics_matrix.dot(&point2_projection);
+            println!("Point1: {:?}", point1_graphical);
+            println!("Point2: {:?}", point2_graphical);
 
             let coords = [
-                point1_transformed[0], point1_transformed[1],
-                point2_transformed[0], point2_transformed[1],
+                point1_graphical[0], point1_graphical[1],
+                point2_graphical[0], point2_graphical[1],
             ];
             pw::line(red, width, coords, context.transform, graphics);
         }
