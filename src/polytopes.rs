@@ -1,34 +1,48 @@
 use std::fmt::Debug;
 
 
-pub type Point3d = (f64, f64, f64);
-pub type Edge = (Point3d, Point3d);
+pub type Vector3d = (f64, f64, f64);
+pub type Edge = (Vector3d, Vector3d);
 
 
 pub trait Polytope : Debug {
-    fn edges(&self) -> Vec<Edge>;
+    fn get_edges(&self) -> Vec<Edge>;
+
+    fn get_scale(&self) -> f64;
+    fn set_scale(&mut self, scale: f64);
+
+    fn get_offset(&self) -> Vector3d;
+    fn set_offset(&mut self, offset: Vector3d);
+
+    fn shift(&mut self, offset: Vector3d) {
+        let (offset_x, offset_y, offset_z) = offset;
+        let (mut x, mut y, mut z) = self.get_offset();
+
+        x += offset_x;
+        y += offset_y;
+        z += offset_z;
+
+        self.set_offset((x, y, z));
+    }
 }
 
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Cube {
-    pub center: Point3d,
-    pub height: f64,
+    pub offset: Vector3d,
+    pub scale: f64,
 }
 
 impl Polytope for Cube {
-    fn edges(&self) -> Vec<Edge> {
-        let step = self.height / 2.0;
-
-        let (center_x, center_y, center_z) = self.center;
-        let l1 = (center_x - step, center_y - step, center_z - step);
-        let l2 = (center_x - step, center_y + step, center_z - step);
-        let l3 = (center_x + step, center_y + step, center_z - step);
-        let l4 = (center_x + step, center_y - step, center_z - step);
-        let u1 = (center_x - step, center_y - step, center_z + step);
-        let u2 = (center_x - step, center_y + step, center_z + step);
-        let u3 = (center_x + step, center_y + step, center_z + step);
-        let u4 = (center_x + step, center_y - step, center_z + step);
+    fn get_edges(&self) -> Vec<Edge> {
+        let l1 = (-1.0, -1.0, -1.0);
+        let l2 = (-1.0, 1.0, -1.0);
+        let l3 = (1.0, 1.0, -1.0);
+        let l4 = (1.0, -1.0, -1.0);
+        let u1 = (-1.0, -1.0, 1.0);
+        let u2 = (-1.0, 1.0, 1.0);
+        let u3 = (1.0, 1.0, 1.0);
+        let u4 = (1.0, -1.0, 1.0);
 
         vec![
             (l1, l2),
@@ -45,4 +59,10 @@ impl Polytope for Cube {
             (l4, u4),
         ]
     }
+
+    fn get_scale(&self) -> f64 { self.scale }
+    fn set_scale(&mut self, scale: f64) { self.scale = scale; }
+
+    fn get_offset(&self) -> (f64, f64, f64) { self.offset }
+    fn set_offset(&mut self, offset: Vector3d) { self.offset = offset; }
 }
