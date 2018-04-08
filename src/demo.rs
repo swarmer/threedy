@@ -2,6 +2,7 @@ use std::f64;
 use std::f64::consts::PI;
 
 use env_logger;
+use ndarray::Array1;
 use piston_window as pw;
 use piston_window::{ButtonEvent, FocusEvent, UpdateEvent};
 
@@ -17,8 +18,9 @@ struct DemoModel {
 impl DemoModel {
     pub fn new() -> DemoModel {
         let offset = (0.0, 0.0, 5.0);
+        let rotation = (0.0, 0.0, 0.0);
         let scale = 1.0;
-        let polytope = Box::new(Cube { offset, scale });
+        let polytope = Box::new(Cube { offset, rotation, scale });
         DemoModel { polytope }
     }
 
@@ -28,6 +30,8 @@ impl DemoModel {
         let mut dx = 0.0;
         let mut dy = 0.0;
         let mut dz = 0.0;
+
+        self.polytope.rotate((0.0007 * PI, 0.002 * PI, 0.0009 * PI));
 
         dy += 10.0 * dt * match input_state.up { pw::ButtonState::Press => 1.0, _ => 0.0 };
         dy -= 10.0 * dt * match input_state.down { pw::ButtonState::Press => 1.0, _ => 0.0 };
@@ -49,7 +53,7 @@ struct DemoView {
 impl DemoView {
     const WIDTH: u32 = 800;
     const HEIGHT: u32 = 600;
-    const COORDS_SCALE: f64 = 100.0;
+    const COORDS_SCALE: f64 = 400.0;
 
     pub fn new() -> DemoView {
         let input_state = InputState::new();
@@ -128,12 +132,29 @@ impl DemoView {
         ];
 
         // TODO
-        let rotation_matrix = array![
+        let (angle_x, angle_y, angle_z) = polytope.get_rotation();
+        let rotation_x_matrix = array![
             [1.0, 0.0, 0.0, 0.0],
+            [0.0, angle_x.cos(), -angle_x.sin(), 0.0],
+            [0.0, angle_x.sin(), angle_x.cos(), 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
+        let rotation_y_matrix = array![
+            [angle_y.cos(), 0.0, angle_y.sin(), 0.0],
             [0.0, 1.0, 0.0, 0.0],
+            [-angle_y.sin(), 0.0, angle_y.cos(), 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ];
+        let rotation_z_matrix = array![
+            [angle_z.cos(), -angle_z.sin(), 0.0, 0.0],
+            [angle_z.sin(), angle_z.cos(), 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0],
             [0.0, 0.0, 0.0, 1.0],
         ];
+        let rotation_matrix =
+            rotation_z_matrix
+            .dot(&rotation_y_matrix)
+            .dot(&rotation_x_matrix);
 
         let (offset_x, offset_y, offset_z) = polytope.get_offset();
         let offset_matrix = array![
@@ -209,13 +230,13 @@ impl DemoView {
 
             let mut point1_projection = mvp_matrix.dot(&point1_arr);
             let mut point2_projection = mvp_matrix.dot(&point2_arr);
-            println!("Point1 pre graphics: {:?}", point1_projection);
-            println!("Point2 pre graphics: {:?}", point2_projection);
             point1_projection /= point1_projection[3];
             point2_projection /= point2_projection[3];
+            println!("Point1 pre graphics: {:?}", point1_projection);
+            println!("Point2 pre graphics: {:?}", point2_projection);
 
-            let point1_graphical = graphics_matrix.dot(&point1_projection);
-            let point2_graphical = graphics_matrix.dot(&point2_projection);
+            let point1_graphical = graphics_matrix.dot(&Self::clip(point1_projection));
+            let point2_graphical = graphics_matrix.dot(&Self::clip(point2_projection));
             println!("Point1: {:?}", point1_graphical);
             println!("Point2: {:?}", point2_graphical);
 
@@ -225,6 +246,14 @@ impl DemoView {
             ];
             pw::line(red, width, coords, context.transform, graphics);
         }
+    }
+
+    fn clip(arr: Array1<f64>) -> Array1<f64> {
+        arr.map(|&x| {
+            if x > 1.0 { 1.0 }
+            else if x < -1.0 { -1.0 }
+            else { x }
+        })
     }
 }
 
